@@ -116,7 +116,7 @@ git commit -m "feat: add GET /logs route for recommendation history"
 - Test: `backend/tests/test_graph_counts.py`
 
 **Interfaces:**
-- Consumes: `cognee.modules.engine.utils.get_graph_engine` (per spec line 121: `graph_engine = await get_graph_engine(); metrics = await graph_engine.get_graph_metrics()`)
+- Consumes: `cognee.infrastructure.databases.graph.get_graph_engine` (corrected from an earlier draft that named `cognee.modules.engine.utils` — that path does not exist in installed cognee 1.2.2, verified live during Task 2 review): `graph_engine = await get_graph_engine(); metrics = await graph_engine.get_graph_metrics()`
 - Produces: `backend.cognee_client._graph_counts() -> dict` with keys `num_nodes: int`, `num_edges: int`. `ingest()` response gains `counts_before`/`counts_after` keys; `forget()` response gains `counts_before`/`counts_after`; `improve()` response gains `counts_before`/`counts_after`.
 
 - [ ] **Step 1: Write the failing test**
@@ -148,7 +148,7 @@ Expected: FAIL — `ImportError: cannot import name '_graph_counts' from 'backen
 In `backend/cognee_client.py`, add import near the top (after the `cognee` import block, line 1-6):
 
 ```python
-from cognee.modules.engine.utils import get_graph_engine
+from cognee.infrastructure.databases.graph import get_graph_engine
 ```
 
 Add helper after `_trace_summary()` (after line 25):
