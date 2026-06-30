@@ -1,6 +1,8 @@
 from uuid import UUID
+import re
 
 import cognee
+import httpx
 from cognee import enable_tracing, get_last_trace, get_all_traces, clear_traces
 from cognee.modules.search.types import SearchType
 from cognee.infrastructure.databases.graph import get_graph_engine
@@ -44,6 +46,28 @@ async def ingest(text: str, dataset: str) -> dict:
         "counts_before": counts_before,
         "counts_after": counts_after,
     }
+
+
+async def ingest_github(url: str, dataset: str) -> dict:
+    match = re.match(r"https://github\.com/([^/]+)/([^/]+)/(?:issues|pull)/(\d+)", url)
+    if not match:
+        raise ValueError(f"not a GitHub issue/PR URL: {url}")
+    owner, repo, number = match.groups()
+    api_base = f"https://api.github.com/repos/{owner}/{repo}/issues/{number}"
+    async with httpx.AsyncClient() as client:
+        issue_resp = await client.get(api_base)
+        issue_resp.raise_for_status()
+        issue = issue_resp.json()
+
+        comments_resp = await client.get(f"{api_base}/comments")
+        comments_resp.raise_for_status()
+        comments = comments_resp.json()
+
+    parts = [issue.get("title", ""), issue.get("body") or ""]
+    parts.extend(c.get("body", "") for c in comments)
+    text = "\n\n".join(p for p in parts if p)
+
+    return await ingest(text, dataset)
 
 
 async def query(question: str) -> dict:

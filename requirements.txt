@@ -4,3 +4,4 @@ cognee[tracing]
 python-dotenv
 anthropic
 transformers
+httpx
