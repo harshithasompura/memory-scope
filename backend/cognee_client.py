@@ -165,6 +165,10 @@ async def list_traces() -> list[dict]:
     return [t.summary() for t in traces]
 
 
+async def list_datasets() -> list[dict]:
+    return await cognee.datasets.list_datasets()
+
+
 async def get_graph_html() -> str:
     try:
         html = await cognee.visualize_graph()
