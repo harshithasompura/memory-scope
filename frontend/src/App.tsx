@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { AskPage } from './pages/AskPage'
 import { GraphPage } from './pages/GraphPage'
+import { LifecyclePage } from './pages/LifecyclePage'
 
 function App() {
   return (
@@ -10,7 +11,7 @@ function App() {
         <Route path="/" element={<Navigate to="/ask" replace />} />
         <Route path="/ask" element={<AskPage />} />
         <Route path="/graph" element={<GraphPage />} />
-        <Route path="/lifecycle" element={<div>Lifecycle</div>} />
+        <Route path="/lifecycle" element={<LifecyclePage />} />
       </Routes>
     </Layout>
   )
