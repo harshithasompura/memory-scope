@@ -81,17 +81,26 @@ async def query(question: str) -> dict:
     }
 
 
-async def forget(dataset: str) -> dict:
+async def forget(dataset: str, data_id: str | None = None) -> dict:
     before_trace = _trace_summary()
 
     # Targeted deletion only. Never call cognee.prune here, it nukes
     # the whole system instead of one dataset.
-    await cognee.forget(dataset=dataset)
+    if data_id:
+        await cognee.forget(data_id=data_id, dataset=dataset)
+    else:
+        await cognee.forget(dataset=dataset)
     clear_traces()
+
+    flagged_count = 0
+    if data_id:
+        flagged_count = recommendation_log.flag_suspect_by_data_id(data_id)
 
     return {
         "status": "ok",
         "dataset": dataset,
+        "data_id": data_id,
+        "flagged_count": flagged_count,
         "trace_before": before_trace,
     }
 

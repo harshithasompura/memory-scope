@@ -114,4 +114,14 @@ whichever call goes second. `query()` runs CHUNKS *before* GRAPH_COMPLETION
 to dodge it — confirmed via live test this ordering gets real metadata on
 the first call and a real synthesized answer on the second.
 
+`forget()` now wired to the log: `cognee_client.forget(dataset, data_id=None)`
+passes `data_id` straight through to `cognee.forget(data_id=..., dataset=...)`
+(native single-document deletion, confirmed via
+`cognee/api/v1/forget/forget.py` source — no dataset→data_id lookup needed,
+contrary to the earlier note here) and calls
+`recommendation_log.flag_suspect_by_data_id(data_id)` afterward. Route
+(`POST /forget`) accepts optional `data_id` in the body. Self-check for the
+flagging logic: isolated assert script confirms correct flag count and
+idempotency on re-flag.
+
 Look into Cloud integrations for Cognee once access is available later.
