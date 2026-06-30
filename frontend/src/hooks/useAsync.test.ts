@@ -4,7 +4,7 @@ import { useAsync } from './useAsync'
 
 describe('useAsync', () => {
   it('transitions idle -> loading -> success', async () => {
-    const fn = vi.fn().mockResolvedValue('ok')
+    const fn = vi.fn<() => Promise<string>>().mockResolvedValue('ok')
     const { result } = renderHook(() => useAsync(fn))
 
     expect(result.current.state.status).toBe('idle')
