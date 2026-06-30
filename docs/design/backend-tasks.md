@@ -30,7 +30,7 @@ CORS is already implemented at `backend/app.py:11-16` (`CORSMiddleware`, `allow_
 - Consumes: `backend.recommendation_log.list_all() -> list[dict]` (already exists, `backend/recommendation_log.py:44-55`)
 - Produces: `GET /logs` → `200` with JSON list of recommendation dicts (same shape as `recommendation_log.list_all()` return value: `id, timestamp, question, answer_text, cited_chunk_ids, cited_data_ids, suspect`)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/test_logs_route.py
@@ -60,12 +60,12 @@ def test_logs_route_returns_list_from_recommendation_log():
     assert resp.json() == fake_rows
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest backend/tests/test_logs_route.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'backend.routes.logs'` (or import error from `backend.app`, since route isn't registered yet)
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # backend/routes/logs.py
@@ -95,12 +95,12 @@ and after `app.include_router(improve.router)` add:
 app.include_router(logs.router)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest backend/tests/test_logs_route.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/routes/logs.py backend/app.py backend/tests/test_logs_route.py
@@ -119,7 +119,7 @@ git commit -m "feat: add GET /logs route for recommendation history"
 - Consumes: `cognee.infrastructure.databases.graph.get_graph_engine` (corrected from an earlier draft that named `cognee.modules.engine.utils` — that path does not exist in installed cognee 1.2.2, verified live during Task 2 review): `graph_engine = await get_graph_engine(); metrics = await graph_engine.get_graph_metrics()`
 - Produces: `backend.cognee_client._graph_counts() -> dict` with keys `num_nodes: int`, `num_edges: int`. `ingest()` response gains `counts_before`/`counts_after` keys; `forget()` response gains `counts_before`/`counts_after`; `improve()` response gains `counts_before`/`counts_after`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/test_graph_counts.py
@@ -138,12 +138,12 @@ async def test_graph_counts_returns_node_and_edge_count():
     assert result == {"num_nodes": 7, "num_edges": 12}
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest backend/tests/test_graph_counts.py -v`
 Expected: FAIL — `ImportError: cannot import name '_graph_counts' from 'backend.cognee_client'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 In `backend/cognee_client.py`, add import near the top (after the `cognee` import block, line 1-6):
 
@@ -225,12 +225,12 @@ async def improve(dataset: str) -> dict:
     }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest backend/tests/test_graph_counts.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/cognee_client.py backend/tests/test_graph_counts.py
@@ -252,7 +252,7 @@ git commit -m "feat: add graph node/edge count deltas to ingest/forget/improve"
 - Consumes: `backend.cognee_client.ingest(text: str, dataset: str) -> dict` (existing, Task 2 updates its return shape but not its signature)
 - Produces: `backend.cognee_client.ingest_github(url: str, dataset: str) -> dict` (parses GitHub issue/PR URL, fetches via GitHub REST API, calls `ingest()`); `POST /ingest/github` route accepting `{url: str, dataset: str = "engineering_decisions"}`
 
-- [ ] **Step 1: Add httpx to requirements.txt**
+- [x] **Step 1: Add httpx to requirements.txt**
 
 ```
 fastapi
@@ -266,7 +266,7 @@ httpx
 
 Run: `pip show httpx` after `pip install -r requirements.txt` to confirm it lands (it was not present as a direct or transitive dependency in this environment as of 2026-06-30 — `ModuleNotFoundError: No module named 'httpx'` before this change).
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```python
 # backend/tests/test_ingest_github.py
@@ -318,12 +318,12 @@ async def test_ingest_github_fetches_and_ingests():
     assert "I can reproduce this too." in text_arg
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `pytest backend/tests/test_ingest_github.py -v`
 Expected: FAIL — `ImportError: cannot import name 'ingest_github' from 'backend.cognee_client'`
 
-- [ ] **Step 4: Write minimal implementation**
+- [x] **Step 4: Write minimal implementation**
 
 In `backend/cognee_client.py`, add import (top of file, alongside existing imports):
 
@@ -397,12 +397,12 @@ and add:
 app.include_router(ingest_github.router)
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `pytest backend/tests/test_ingest_github.py -v`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add requirements.txt backend/cognee_client.py backend/routes/ingest_github.py backend/app.py backend/tests/test_ingest_github.py
@@ -423,7 +423,7 @@ git commit -m "feat: add POST /ingest/github route for GitHub issue/PR ingestion
 - Consumes: `cognee.datasets.list_datasets()` (confirmed direct-mode call per spec line 143-146)
 - Produces: `backend.cognee_client.list_datasets() -> list[dict]`; `GET /datasets` → `200` with that list
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/test_datasets_route.py
@@ -443,12 +443,12 @@ def test_datasets_route_returns_list_from_cognee_client():
     assert resp.json() == fake_datasets
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest backend/tests/test_datasets_route.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'backend.routes.datasets'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 In `backend/cognee_client.py`, add after `list_traces()`:
 
@@ -486,12 +486,12 @@ and add:
 app.include_router(datasets.router)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest backend/tests/test_datasets_route.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/cognee_client.py backend/routes/datasets.py backend/app.py backend/tests/test_datasets_route.py
@@ -508,12 +508,12 @@ git commit -m "feat: add GET /datasets route for dataset picker"
 **Interfaces:**
 - Consumes: all routes registered in `backend/app.py` after Tasks 1-4.
 
-- [ ] **Step 1: Run full backend test suite**
+- [x] **Step 1: Run full backend test suite**
 
 Run: `pytest backend/tests/ -v`
 Expected: all tests PASS, including pre-existing tests plus `test_logs_route.py`, `test_graph_counts.py`, `test_ingest_github.py`, `test_datasets_route.py`
 
-- [ ] **Step 2: Start the server and hit each new route manually**
+- [x] **Step 2: Start the server and hit each new route manually**
 
 Run: `uvicorn backend.app:app --reload` (separate terminal), then:
 
