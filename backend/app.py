@@ -2,7 +2,7 @@ import cognee
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from backend.routes import ingest, query, forget, graph, traces, improve
+from backend.routes import ingest, query, forget, graph, traces, improve, logs
 
 load_dotenv()
 
@@ -21,6 +21,7 @@ app.include_router(forget.router)
 app.include_router(graph.router)
 app.include_router(traces.router)
 app.include_router(improve.router)
+app.include_router(logs.router)
 
 
 @app.get("/health")
