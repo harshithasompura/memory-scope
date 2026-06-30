@@ -1,0 +1,4 @@
+fastapi
+uvicorn[standard]
+cognee[tracing]
+python-dotenv
