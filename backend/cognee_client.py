@@ -1,3 +1,5 @@
+from uuid import UUID
+
 import cognee
 from cognee import enable_tracing, get_last_trace, get_all_traces, clear_traces
 from cognee.modules.search.types import SearchType
@@ -87,7 +89,7 @@ async def forget(dataset: str, data_id: str | None = None) -> dict:
     # Targeted deletion only. Never call cognee.prune here, it nukes
     # the whole system instead of one dataset.
     if data_id:
-        await cognee.forget(data_id=data_id, dataset=dataset)
+        await cognee.forget(data_id=UUID(data_id), dataset=dataset)
     else:
         await cognee.forget(dataset=dataset)
     clear_traces()
