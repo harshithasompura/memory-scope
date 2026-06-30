@@ -1,6 +1,9 @@
 import cognee
 from cognee import enable_tracing, get_last_trace, get_all_traces, clear_traces
+from cognee.modules.search.types import SearchType
 from dotenv import load_dotenv
+
+from backend import recommendation_log
 
 load_dotenv()
 
@@ -31,6 +34,23 @@ async def ingest(text: str, dataset: str) -> dict:
 
 
 async def query(question: str) -> dict:
+    # CHUNKS first: vector search only, populates real chunk_id/data_id
+    # metadata. Must run before the GRAPH_COMPLETION call below — asking
+    # cognee near-identical questions back-to-back triggers an internal
+    # dedup ("you already asked this") that returns a canned stub instead
+    # of real results for whichever call goes second. GRAPH_COMPLETION
+    # going second is unaffected since it answers from the graph, not
+    # from chunk text, so the ordering only matters for CHUNKS.
+    chunk_results = await cognee.recall(question, query_type=SearchType.CHUNKS, top_k=5)
+    cited_chunk_ids = []
+    cited_data_ids = []
+    for r in chunk_results:
+        metadata = r.metadata if hasattr(r, "metadata") else r.get("metadata", {})
+        if metadata.get("chunk_id"):
+            cited_chunk_ids.append(metadata["chunk_id"])
+        if metadata.get("data_id"):
+            cited_data_ids.append(metadata["data_id"])
+
     results = await cognee.recall(question)
     trace = _trace_summary()
 
@@ -45,9 +65,18 @@ async def query(question: str) -> dict:
     else:
         answer = getattr(results[0], "text", str(results[0]))
 
+    recommendation_log.record(
+        question=question,
+        answer_text=answer,
+        cited_chunk_ids=cited_chunk_ids,
+        cited_data_ids=cited_data_ids,
+    )
+
     return {
         "answer": answer,
         "raw_count": len(results),
+        "cited_chunk_ids": cited_chunk_ids,
+        "cited_data_ids": cited_data_ids,
         "trace": trace,
     }
 

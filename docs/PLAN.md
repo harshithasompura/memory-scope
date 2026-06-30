@@ -85,14 +85,33 @@ monospace for code/citations.
 - Deployment/hosting — local dev only.
 - Multi-user auth.
 
-## Open risk to verify before building further
+## Resolved: recall() metadata richness (was "open risk")
 
-Whether `recall()`'s returned metadata (`ResponseGraphEntry.metadata`,
-`.score`) is populated richly enough in practice to extract *which specific
-nodes* an answer cited, or whether citation must be approximated from
-`source` and `text` content matching. This determines how precise the
-suspect-flagging can be. Must be tested with real ingested data (not the
-empty-metadata smoke test run earlier) before the recommendation-log schema
-is finalized.
+Tested live against ingested ADR data. Default `recall()` (no `query_type`,
+auto-routes to GRAPH_COMPLETION) returns `score: None`, `metadata: {}` —
+the answer is a synthesized LLM string with no node/chunk pointers
+(`normalize_search_payload.py` only populates `metadata.chunk_id`/`data_id`
+when the entry is a dict carrying `document_id`/`id`, true for CHUNKS/
+SUMMARIES, not for GRAPH_COMPLETION's plain completion string).
+
+Decision: hybrid call in `query()`. GRAPH_COMPLETION for the user-facing
+answer (as today), plus a second `query_type=SearchType.CHUNKS` call
+(vector search only, no LLM, no extra Anthropic cost) purely to extract
+`chunk_id`/`data_id` for the recommendation log. Citation is therefore an
+approximation (top-k chunk overlap with the question, not a guaranteed
+trace of what the GRAPH_COMPLETION answer actually drew on) — documented
+limitation, acceptable for the demo.
+
+Recommendation log schema (SQLite, `backend/recommendation_log.py`):
+`id, timestamp, question, answer_text, cited_chunk_ids (json), cited_data_ids (json), suspect (bool)`.
+`flag_suspect_by_data_id(data_id)` walks the log on `forget()` and marks
+rows suspect.
+
+Gotcha found while wiring this up: cognee internally dedups near-identical
+questions asked back-to-back (no session_id needed to trigger it) and
+returns a canned "you already asked this" stub instead of real results for
+whichever call goes second. `query()` runs CHUNKS *before* GRAPH_COMPLETION
+to dodge it — confirmed via live test this ordering gets real metadata on
+the first call and a real synthesized answer on the second.
 
 Look into Cloud integrations for Cognee once access is available later.
