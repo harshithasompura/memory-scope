@@ -169,9 +169,9 @@ async def list_datasets() -> list[dict]:
     return await cognee.datasets.list_datasets()
 
 
-async def get_graph_html() -> str:
+async def get_graph_html(dataset: str = "engineering_decisions") -> str:
     try:
-        html = await cognee.visualize_graph()
+        html = await cognee.visualize_graph(dataset=dataset)
         return html if html else "<p>Graph empty. Ingest data first.</p>"
     except Exception as e:
         return f"<p>Graph unavailable: {e}</p>"
