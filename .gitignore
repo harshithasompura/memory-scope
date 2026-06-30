@@ -1,7 +1,12 @@
 venv
+.venv
 node_modules
 dist
 __pycache__/
+*.pyc
 
 # Env files
 .env
+
+# Data
+*.db
