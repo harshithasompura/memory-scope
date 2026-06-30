@@ -1,0 +1,58 @@
+import type {
+  Dataset,
+  ForgetResponse,
+  GraphResponse,
+  ImproveResponse,
+  IngestResponse,
+  LogEntry,
+  QueryResponse,
+} from './types'
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...init,
+  })
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`${res.status}: ${body}`)
+  }
+  return res.json() as Promise<T>
+}
+
+export function postQuery(question: string): Promise<QueryResponse> {
+  return request('/query', { method: 'POST', body: JSON.stringify({ question }) })
+}
+
+export function getLogs(): Promise<LogEntry[]> {
+  return request('/logs')
+}
+
+export function getGraph(): Promise<GraphResponse> {
+  return request('/graph')
+}
+
+export function getDatasets(): Promise<Dataset[]> {
+  return request('/datasets')
+}
+
+export function postIngest(text: string, dataset: string): Promise<IngestResponse> {
+  return request('/ingest', { method: 'POST', body: JSON.stringify({ text, dataset }) })
+}
+
+export function postIngestGithub(url: string, dataset: string): Promise<IngestResponse> {
+  return request('/ingest/github', { method: 'POST', body: JSON.stringify({ url, dataset }) })
+}
+
+export function postForget(dataset: string, dataId?: string): Promise<ForgetResponse> {
+  return request('/forget', {
+    method: 'POST',
+    body: JSON.stringify({ dataset, data_id: dataId || null }),
+  })
+}
+
+export function postImprove(dataset: string): Promise<ImproveResponse> {
+  return request('/improve', { method: 'POST', body: JSON.stringify({ dataset }) })
+}
