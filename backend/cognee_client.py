@@ -1,4 +1,5 @@
 from uuid import UUID
+from datetime import datetime, timedelta, timezone
 import re
 
 import cognee
@@ -13,6 +14,17 @@ from backend import recommendation_log
 load_dotenv()
 
 enable_tracing()
+
+# ponytail: flat 1-hour cutoff so staleness is visible within a single demo
+# session. A real product would decay per doc type (half-life scoring, see
+# cognee issue #3700) instead of one global threshold.
+STALE_THRESHOLD = timedelta(hours=1)
+
+
+def _is_stale(created_at: datetime, now: datetime) -> bool:
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+    return (now - created_at) > STALE_THRESHOLD
 
 
 def _trace_summary() -> dict:
@@ -216,6 +228,25 @@ async def list_traces() -> list[dict]:
 
 async def list_datasets() -> list[dict]:
     return await cognee.datasets.list_datasets()
+
+
+async def list_documents(dataset: str) -> list[dict]:
+    all_datasets = await cognee.datasets.list_datasets()
+    match = next((d for d in all_datasets if d.name == dataset), None)
+    if match is None:
+        return []
+
+    items = await cognee.datasets.list_data(match.id)
+    now = datetime.now(timezone.utc)
+    return [
+        {
+            "id": str(item.id),
+            "name": item.name,
+            "created_at": item.created_at.isoformat(),
+            "stale": _is_stale(item.created_at, now),
+        }
+        for item in items
+    ]
 
 
 async def get_graph_html(dataset: str = "engineering_decisions") -> str:

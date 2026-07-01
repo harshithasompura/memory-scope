@@ -11,6 +11,7 @@ describe('LifecyclePage', () => {
     vi.mocked(api.getDatasets).mockResolvedValue([
       { id: '1', name: 'engineering_decisions', created_at: '' },
     ])
+    vi.mocked(api.getDatasetDocuments).mockResolvedValue([])
     vi.mocked(api.postForget).mockResolvedValue({
       status: 'ok',
       dataset: 'engineering_decisions',
@@ -53,5 +54,22 @@ describe('LifecyclePage', () => {
 
     await waitFor(() => expect(screen.getByText(/2 recommendation\(s\) affected/)).toBeInTheDocument())
     expect(screen.getByText(/avg confidence 75%/)).toBeInTheDocument()
+  })
+
+  it('shows a stale badge for documents past the staleness threshold', async () => {
+    vi.mocked(api.getDatasetDocuments).mockResolvedValue([
+      { id: 'doc-old', name: 'session-auth.md', created_at: '2026-06-01T00:00:00Z', stale: true },
+      { id: 'doc-new', name: 'oauth.md', created_at: '2026-06-30T23:00:00Z', stale: false },
+    ])
+
+    render(<LifecyclePage />)
+
+    await waitFor(() =>
+      expect(api.getDatasetDocuments).toHaveBeenCalledWith('engineering_decisions'),
+    )
+
+    expect(await screen.findByText('session-auth.md')).toBeInTheDocument()
+    expect(screen.getByText('stale')).toBeInTheDocument()
+    expect(screen.getByText('oauth.md')).toBeInTheDocument()
   })
 })

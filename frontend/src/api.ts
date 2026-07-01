@@ -1,5 +1,6 @@
 import type {
   Dataset,
+  DatasetDocument,
   ForgetResponse,
   GraphResponse,
   ImproveResponse,
@@ -40,6 +41,10 @@ export function getGraph(): Promise<GraphResponse> {
 
 export function getDatasets(): Promise<Dataset[]> {
   return request('/datasets')
+}
+
+export function getDatasetDocuments(dataset: string): Promise<DatasetDocument[]> {
+  return request(`/datasets/${dataset}/documents`)
 }
 
 export function postIngest(text: string, dataset: string): Promise<IngestResponse> {

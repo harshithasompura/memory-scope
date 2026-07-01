@@ -48,6 +48,13 @@ export interface Dataset {
   created_at: string
 }
 
+export interface DatasetDocument {
+  id: string
+  name: string
+  created_at: string
+  stale: boolean
+}
+
 export interface IngestResponse {
   status: string
   dataset: string

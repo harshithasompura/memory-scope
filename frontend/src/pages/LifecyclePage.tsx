@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import { getDatasets, postForget, postImprove, postIngest, postIngestGithub } from '../api'
+import {
+  getDatasetDocuments,
+  getDatasets,
+  postForget,
+  postImprove,
+  postIngest,
+  postIngestGithub,
+} from '../api'
+import { Badge } from '../components/Badge'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { ErrorState } from '../components/ErrorState'
@@ -19,11 +27,17 @@ function CountDelta({ before, after }: { before: GraphCounts; after: GraphCounts
 export function LifecyclePage() {
   const [dataset, setDataset] = useState(DEFAULT_DATASET)
   const datasets = useAsync(getDatasets)
+  const documents = useAsync(getDatasetDocuments)
 
   useEffect(() => {
     datasets.run()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    documents.run(dataset)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataset])
 
   const datasetNames =
     datasets.state.status === 'success' && datasets.state.data.length > 0
@@ -50,7 +64,25 @@ export function LifecyclePage() {
       <RememberForm dataset={dataset} />
       <ForgetForm dataset={dataset} />
       <ImproveForm dataset={dataset} />
+      <DocumentsList documents={documents.state.status === 'success' ? documents.state.data : []} />
     </div>
+  )
+}
+
+function DocumentsList({ documents }: { documents: { id: string; name: string; stale: boolean }[] }) {
+  if (documents.length === 0) return null
+  return (
+    <Card>
+      <h2 className="mb-2 text-sm font-medium text-gray-700">Documents</h2>
+      <ul className="space-y-1">
+        {documents.map((doc) => (
+          <li key={doc.id} className="flex items-center gap-2 text-sm">
+            <span>{doc.name}</span>
+            {doc.stale && <Badge>stale</Badge>}
+          </li>
+        ))}
+      </ul>
+    </Card>
   )
 }
 
