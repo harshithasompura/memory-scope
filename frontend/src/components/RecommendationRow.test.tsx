@@ -79,10 +79,34 @@ describe('RecommendationRow', () => {
         <RecommendationRow entry={untrackedEntry} />
       </ul>,
     )
-    const btn = screen.getByText('citation untracked — cannot verify')
+    const btn = screen.getByRole('button', { name: 'citation untracked — cannot verify' })
     expect(btn).toBeInTheDocument()
-    // The button element should be disabled
-    expect(btn.closest('button')).toBeDisabled()
+    expect(btn).toBeDisabled()
+  })
+
+  it('shows citation-untracked provenance message when cited_data_ids is empty', () => {
+    const untrackedEntry: LogEntry = {
+      ...baseEntry,
+      suspect: false,
+      resolved: false,
+      cited_data_ids: [],
+    }
+    render(
+      <ul>
+        <RecommendationRow entry={untrackedEntry} />
+      </ul>,
+    )
+    expect(screen.getByText('citation untracked — cannot verify')).toBeInTheDocument()
+  })
+
+  it('renders provenance chain with chunk and source data when citations present', () => {
+    render(
+      <ul>
+        <RecommendationRow entry={baseEntry} />
+      </ul>,
+    )
+    expect(screen.getByText(/chunks: chunk-1/)).toBeInTheDocument()
+    expect(screen.getByText(/source: data-1/)).toBeInTheDocument()
   })
 
   it('shows changed diff and Mark resolved button after successful reask with changed=true', async () => {

@@ -134,7 +134,9 @@ async def forget(dataset: str, data_id: str | None = None) -> dict:
     counts_after = await _graph_counts()
 
     flagged_count = 0
+    blast_radius = {"count": 0, "most_recent": None, "avg_confidence": 0.0}
     if data_id:
+        blast_radius = recommendation_log.blast_radius(data_id)
         flagged_count = recommendation_log.flag_suspect_by_data_id(data_id)
 
     return {
@@ -142,6 +144,7 @@ async def forget(dataset: str, data_id: str | None = None) -> dict:
         "dataset": dataset,
         "data_id": data_id,
         "flagged_count": flagged_count,
+        "blast_radius": blast_radius,
         "trace_before": before_trace,
         "counts_before": counts_before,
         "counts_after": counts_after,

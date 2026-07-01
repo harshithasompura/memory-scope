@@ -4,7 +4,7 @@ import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { ErrorState } from '../components/ErrorState'
 import { useAsync } from '../hooks/useAsync'
-import type { ForgetResponse, GraphCounts, ImproveResponse, IngestResponse } from '../types'
+import type { BlastRadius, ForgetResponse, GraphCounts, ImproveResponse, IngestResponse } from '../types'
 
 const DEFAULT_DATASET = 'engineering_decisions'
 
@@ -123,6 +123,19 @@ function RememberForm({ dataset }: { dataset: string }) {
   )
 }
 
+function BlastRadiusSummary({ blastRadius }: { blastRadius: BlastRadius }) {
+  if (blastRadius.count === 0) {
+    return <p className="text-sm text-gray-700">0 recommendation(s) affected</p>
+  }
+  return (
+    <p className="text-sm text-gray-700">
+      {blastRadius.count} recommendation(s) affected · most recent{' '}
+      {new Date(blastRadius.most_recent!).toLocaleString()} · avg confidence{' '}
+      {Math.round(blastRadius.avg_confidence * 100)}%
+    </p>
+  )
+}
+
 function ForgetForm({ dataset }: { dataset: string }) {
   const [dataId, setDataId] = useState('')
   const forget = useAsync(postForget)
@@ -154,7 +167,7 @@ function ForgetForm({ dataset }: { dataset: string }) {
       {forget.state.status === 'error' && <ErrorState message={forget.state.error} />}
       {result && (
         <>
-          <p className="text-sm text-gray-700">{result.flagged_count} recommendation(s) affected</p>
+          <BlastRadiusSummary blastRadius={result.blast_radius} />
           <CountDelta before={result.counts_before} after={result.counts_after} />
         </>
       )}

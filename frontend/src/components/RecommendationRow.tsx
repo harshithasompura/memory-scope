@@ -42,12 +42,23 @@ export function RecommendationRow({ entry, onResolved }: Props) {
       >
         <div className="overflow-hidden">
           <p className="mt-2 text-sm text-gray-700">{entry.answer_text}</p>
-          <p className="mt-1 font-mono text-xs text-gray-500">
-            chunks: {entry.cited_chunk_ids.join(', ') || 'none'}
-          </p>
-          <p className="font-mono text-xs text-gray-500">
-            data: {entry.cited_data_ids.join(', ') || 'none'}
-          </p>
+
+          {/* Provenance chain: answer -> cited chunks -> source data_ids. UI-only render of existing log fields. */}
+          <div className="mt-2 font-mono text-xs text-gray-500">
+            {entry.cited_data_ids.length === 0 ? (
+              <p className="text-amber-600">{CITATION_UNTRACKED_LABEL}</p>
+            ) : (
+              <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+                <span>answer</span>
+                <span aria-hidden="true">→</span>
+                <span>
+                  chunks: {entry.cited_chunk_ids.length > 0 ? entry.cited_chunk_ids.join(', ') : 'none'}
+                </span>
+                <span aria-hidden="true">→</span>
+                <span>source: {entry.cited_data_ids.join(', ')}</span>
+              </div>
+            )}
+          </div>
 
           {/* Re-ask flow: only shown for suspect rows that are not yet resolved */}
           {entry.suspect && !entry.resolved && (

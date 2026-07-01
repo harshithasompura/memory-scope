@@ -55,11 +55,18 @@ export interface IngestResponse {
   counts_after: GraphCounts
 }
 
+export interface BlastRadius {
+  count: number
+  most_recent: string | null
+  avg_confidence: number
+}
+
 export interface ForgetResponse {
   status: string
   dataset: string
   data_id: string | null
   flagged_count: number
+  blast_radius: BlastRadius
   trace_before: TraceSummary
   counts_before: GraphCounts
   counts_after: GraphCounts

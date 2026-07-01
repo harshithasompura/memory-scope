@@ -130,6 +130,35 @@ def test_flag_suspect_by_data_id_skips_already_suspect_rows():
 
 
 # ---------------------------------------------------------------------------
+# blast_radius()
+# ---------------------------------------------------------------------------
+
+def test_blast_radius_zero_matches():
+    result = recommendation_log.blast_radius("d-missing")
+    assert result == {"count": 0, "most_recent": None, "avg_confidence": 0.0}
+
+
+def test_blast_radius_counts_and_confidence():
+    recommendation_log.record(question="q1", answer_text="a1", cited_chunk_ids=[], cited_data_ids=["d1"])
+    recommendation_log.record(question="q2", answer_text="a2", cited_chunk_ids=[], cited_data_ids=["d1", "d2"])
+
+    result = recommendation_log.blast_radius("d1")
+
+    assert result["count"] == 2
+    # confidence = avg(1/1, 1/2) = 0.75 -- sole citation counts more than a shared one
+    assert result["avg_confidence"] == 0.75
+
+
+def test_blast_radius_most_recent_is_latest_timestamp():
+    recommendation_log.record(question="q1", answer_text="a1", cited_chunk_ids=[], cited_data_ids=["d1"])
+    rec2 = recommendation_log.record(question="q2", answer_text="a2", cited_chunk_ids=[], cited_data_ids=["d1"])
+
+    result = recommendation_log.blast_radius("d1")
+
+    assert result["most_recent"] == recommendation_log.get(rec2)["timestamp"]
+
+
+# ---------------------------------------------------------------------------
 # get()
 # ---------------------------------------------------------------------------
 

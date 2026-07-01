@@ -84,6 +84,22 @@ def resolve(rec_id: int) -> None:
         conn.execute("UPDATE recommendations SET resolved = 1 WHERE id = ?", (rec_id,))
 
 
+def blast_radius(data_id: str) -> dict:
+    """Impact summary for forgetting data_id: how many recs cited it, how recently, and how central
+    it was to each (confidence = 1/len(cited_data_ids), lower when other citations back the same answer)."""
+    with _connect() as conn:
+        rows = conn.execute("SELECT timestamp, cited_data_ids FROM recommendations").fetchall()
+    matches = [(r["timestamp"], json.loads(r["cited_data_ids"])) for r in rows if data_id in json.loads(r["cited_data_ids"])]
+    if not matches:
+        return {"count": 0, "most_recent": None, "avg_confidence": 0.0}
+    shares = [1 / len(ids) for _, ids in matches]
+    return {
+        "count": len(matches),
+        "most_recent": max(ts for ts, _ in matches),
+        "avg_confidence": round(sum(shares) / len(shares), 2),
+    }
+
+
 def flag_suspect_by_data_id(data_id: str) -> int:
     """Mark every logged recommendation that cited data_id as suspect. Returns count flagged."""
     with _connect() as conn:
