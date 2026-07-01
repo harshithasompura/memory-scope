@@ -1,32 +1,49 @@
-# React + TypeScript + Vite
+# MemoryScope Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite + TypeScript UI for MemoryScope: Ask / Memory Graph / Lifecycle
+tabs over the FastAPI + Cognee backend. See
+[docs/design/frontend-design.md](../docs/design/frontend-design.md) for the
+full design spec.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+pnpm install
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Dev server
+
+Backend must be running on `http://localhost:8000` (see `backend/`). The
+Vite dev server proxies `/api/*` to it (config in `vite.config.ts`):
+
+```bash
+pnpm dev
+```
+
+To point at a different backend, set `VITE_API_BASE_URL` instead of relying
+on the proxy:
+
+```bash
+VITE_API_BASE_URL=http://localhost:8000 pnpm dev
+```
+
+## Test
+
+```bash
+pnpm test
+```
+
+Vitest + React Testing Library, `api.ts` mocked via `vi.mock`. Requires
+Node 22+ (jsdom/pnpm build tooling breaks on Node 20).
+
+## Build
+
+```bash
+pnpm build
+```
+
+## Routes
+
+- `/ask` (default) — question form, answer, recommendation log
+- `/graph` — Cognee graph viewer (iframe)
+- `/lifecycle` — remember / forget / improve forms
