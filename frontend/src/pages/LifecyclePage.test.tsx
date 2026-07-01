@@ -72,4 +72,41 @@ describe('LifecyclePage', () => {
     expect(screen.getByText('stale')).toBeInTheDocument()
     expect(screen.getByText('oauth.md')).toBeInTheDocument()
   })
+
+  it('shows a contradiction badge for flagged documents', async () => {
+    vi.mocked(api.getDatasetDocuments).mockResolvedValue([
+      {
+        id: 'doc-old',
+        name: 'session-auth.md',
+        created_at: '2026-06-01T00:00:00Z',
+        stale: false,
+        contradiction: true,
+      },
+    ])
+
+    render(<LifecyclePage />)
+
+    expect(await screen.findByText('session-auth.md')).toBeInTheDocument()
+    expect(screen.getByText('contradiction')).toBeInTheDocument()
+  })
+
+  it('shows a contradiction warning immediately after ingest flags one', async () => {
+    vi.mocked(api.postIngest).mockResolvedValue({
+      status: 'ok',
+      dataset: 'engineering_decisions',
+      trace: { operation: null, duration_ms: 0, breakdown: {}, errors: [] },
+      counts_before: { num_nodes: 10, num_edges: 20 },
+      counts_after: { num_nodes: 12, num_edges: 24 },
+      contradiction: { data_id: 'doc-old', reason: 'HS256 vs RS256 conflict' },
+    })
+
+    const user = userEvent.setup()
+    render(<LifecyclePage />)
+
+    await waitFor(() => expect(api.getDatasets).toHaveBeenCalled())
+    await user.type(screen.getByPlaceholderText('Paste text to ingest...'), 'we now use RS256')
+    await user.click(screen.getByRole('button', { name: 'Ingest text' }))
+
+    expect(await screen.findByText(/HS256 vs RS256 conflict/)).toBeInTheDocument()
+  })
 })

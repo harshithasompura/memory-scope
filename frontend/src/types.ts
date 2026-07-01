@@ -53,6 +53,12 @@ export interface DatasetDocument {
   name: string
   created_at: string
   stale: boolean
+  contradiction: boolean
+}
+
+export interface Contradiction {
+  data_id: string
+  reason: string
 }
 
 export interface IngestResponse {
@@ -61,6 +67,7 @@ export interface IngestResponse {
   trace: TraceSummary
   counts_before: GraphCounts
   counts_after: GraphCounts
+  contradiction: Contradiction | null
 }
 
 export interface BlastRadius {

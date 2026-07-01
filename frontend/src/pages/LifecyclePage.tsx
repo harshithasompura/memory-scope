@@ -69,7 +69,11 @@ export function LifecyclePage() {
   )
 }
 
-function DocumentsList({ documents }: { documents: { id: string; name: string; stale: boolean }[] }) {
+function DocumentsList({
+  documents,
+}: {
+  documents: { id: string; name: string; stale: boolean; contradiction: boolean }[]
+}) {
   if (documents.length === 0) return null
   return (
     <Card>
@@ -79,6 +83,7 @@ function DocumentsList({ documents }: { documents: { id: string; name: string; s
           <li key={doc.id} className="flex items-center gap-2 text-sm">
             <span>{doc.name}</span>
             {doc.stale && <Badge>stale</Badge>}
+            {doc.contradiction && <Badge>contradiction</Badge>}
           </li>
         ))}
       </ul>
@@ -151,6 +156,9 @@ function RememberForm({ dataset }: { dataset: string }) {
 
       {error && <ErrorState message={error} />}
       {result && <CountDelta before={result.counts_before} after={result.counts_after} />}
+      {result?.contradiction && (
+        <p className="text-sm text-red-700">Contradiction detected: {result.contradiction.reason}</p>
+      )}
     </Card>
   )
 }

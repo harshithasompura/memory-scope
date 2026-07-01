@@ -1,7 +1,9 @@
 from uuid import UUID
 from datetime import datetime, timedelta, timezone
+import os
 import re
 
+import anthropic
 import cognee
 import httpx
 from cognee import enable_tracing, get_last_trace, get_all_traces, clear_traces
@@ -9,11 +11,34 @@ from cognee.modules.search.types import SearchType
 from cognee.infrastructure.databases.graph import get_graph_engine
 from dotenv import load_dotenv
 
-from backend import recommendation_log
+from backend import contradiction_log, recommendation_log
 
 load_dotenv()
 
 enable_tracing()
+
+
+def _parse_verdict(text: str) -> tuple[bool, str]:
+    first_line, _, rest = text.strip().partition("\n")
+    contradicts = first_line.strip().lower().startswith("yes")
+    reason = rest.strip() or first_line.strip()
+    return contradicts, reason
+
+
+async def _judge_contradiction(existing_answer: str, new_claim: str) -> tuple[bool, str]:
+    client = anthropic.Anthropic(api_key=os.environ["LLM_API_KEY"])
+    prompt = (
+        "Does the NEW CLAIM contradict the EXISTING ANSWER below, or is it "
+        "a refinement/extension of the same idea? Answer strictly in this "
+        "format (two lines, nothing else):\nyes|no\n<one-sentence reason>\n\n"
+        f"EXISTING ANSWER:\n{existing_answer}\n\nNEW CLAIM:\n{new_claim}"
+    )
+    response = client.messages.create(
+        model="claude-haiku-4-5",
+        max_tokens=100,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return _parse_verdict(response.content[0].text)
 
 # ponytail: flat 1-hour cutoff so staleness is visible within a single demo
 # session. A real product would decay per doc type (half-life scoring, see
@@ -46,8 +71,34 @@ async def _graph_counts() -> dict:
     return {"num_nodes": metrics["num_nodes"], "num_edges": metrics["num_edges"]}
 
 
+async def _check_contradiction(text: str, counts_before: dict) -> dict | None:
+    # Skip on an empty graph — recall() has nothing to compare against yet,
+    # and its behavior on a dataset with zero nodes is undefined.
+    if counts_before["num_nodes"] == 0:
+        return None
+
+    claim = text[:300]
+    chunk_results = await cognee.recall(claim, query_type=SearchType.CHUNKS, top_k=1)
+    if not chunk_results:
+        return None
+
+    r = chunk_results[0]
+    metadata = r.metadata if hasattr(r, "metadata") else r.get("metadata", {})
+    old_data_id = metadata.get("data_id")
+    if not old_data_id:
+        return None
+
+    contradicts, reason = await _judge_contradiction(_chunk_text(r), claim)
+    if not contradicts:
+        return None
+
+    contradiction_log.flag(old_data_id, reason)
+    return {"data_id": old_data_id, "reason": reason}
+
+
 async def ingest(text: str, dataset: str) -> dict:
     counts_before = await _graph_counts()
+    contradiction = await _check_contradiction(text, counts_before)
     await cognee.add(text, dataset_name=dataset)
     await cognee.cognify()
     counts_after = await _graph_counts()
@@ -57,6 +108,7 @@ async def ingest(text: str, dataset: str) -> dict:
         "trace": _trace_summary(),
         "counts_before": counts_before,
         "counts_after": counts_after,
+        "contradiction": contradiction,
     }
 
 
@@ -244,6 +296,7 @@ async def list_documents(dataset: str) -> list[dict]:
             "name": item.name,
             "created_at": item.created_at.isoformat(),
             "stale": _is_stale(item.created_at, now),
+            "contradiction": contradiction_log.is_flagged(str(item.id)),
         }
         for item in items
     ]
