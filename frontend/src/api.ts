@@ -23,8 +23,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
-export function postQuery(question: string): Promise<QueryResponse> {
-  return request('/query', { method: 'POST', body: JSON.stringify({ question }) })
+export function postQuery(question: string, asOf?: string): Promise<QueryResponse> {
+  return request('/query', {
+    method: 'POST',
+    body: JSON.stringify({ question, as_of: asOf || null }),
+  })
 }
 
 export function getLogs(): Promise<LogEntry[]> {

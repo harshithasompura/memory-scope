@@ -70,7 +70,19 @@ async def ingest_github(url: str, dataset: str) -> dict:
     return await ingest(text, dataset)
 
 
-async def query(question: str) -> dict:
+async def _created_at_ms(data_id: str) -> int | None:
+    graph_engine = await get_graph_engine()
+    node = await graph_engine.get_node(data_id)
+    if node is None:
+        return None
+    return node["created_at"] if isinstance(node, dict) else node.created_at
+
+
+def _chunk_text(r) -> str:
+    return r.text if hasattr(r, "text") else r.get("text", str(r))
+
+
+async def query(question: str, as_of_ms: int | None = None) -> dict:
     # CHUNKS first: vector search only, populates real chunk_id/data_id
     # metadata. Must run before the GRAPH_COMPLETION call below — asking
     # cognee near-identical questions back-to-back triggers an internal
@@ -79,6 +91,39 @@ async def query(question: str) -> dict:
     # going second is unaffected since it answers from the graph, not
     # from chunk text, so the ordering only matters for CHUNKS.
     chunk_results = await cognee.recall(question, query_type=SearchType.CHUNKS, top_k=5)
+
+    if as_of_ms is not None:
+        # No native way to scope GRAPH_COMPLETION to a point in time, so
+        # as-of answers come from the CHUNKS results directly instead.
+        for r in chunk_results:
+            metadata = r.metadata if hasattr(r, "metadata") else r.get("metadata", {})
+            data_id = metadata.get("data_id")
+            if not data_id:
+                continue
+            created_at = await _created_at_ms(data_id)
+            if created_at is not None and created_at <= as_of_ms:
+                log_id = recommendation_log.record(
+                    question=question,
+                    answer_text=_chunk_text(r),
+                    cited_chunk_ids=[metadata.get("chunk_id")] if metadata.get("chunk_id") else [],
+                    cited_data_ids=[data_id],
+                )
+                return {
+                    "answer": _chunk_text(r),
+                    "cited_chunk_ids": [metadata.get("chunk_id")] if metadata.get("chunk_id") else [],
+                    "cited_data_ids": [data_id],
+                    "as_of_ms": as_of_ms,
+                    "log_id": log_id,
+                    "trace": _trace_summary(),
+                }
+        return {
+            "answer": "no memory yet at this time",
+            "cited_chunk_ids": [],
+            "cited_data_ids": [],
+            "as_of_ms": as_of_ms,
+            "trace": _trace_summary(),
+        }
+
     cited_chunk_ids = []
     cited_data_ids = []
     for r in chunk_results:

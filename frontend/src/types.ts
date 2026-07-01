@@ -15,6 +15,7 @@ export interface QueryResponse {
   raw_count?: number
   cited_chunk_ids?: string[]
   cited_data_ids?: string[]
+  as_of_ms?: number
   trace: TraceSummary
 }
 

@@ -26,4 +26,31 @@ describe('AskPage', () => {
 
     await waitFor(() => expect(screen.getByText('use OAuth instead of JWT')).toBeInTheDocument())
   })
+
+  it('sends the as-of timestamp when a time-travel date is set', async () => {
+    const user = userEvent.setup()
+    render(<AskPage />)
+
+    await waitFor(() => expect(api.getLogs).toHaveBeenCalled())
+
+    await user.type(screen.getByLabelText('As of'), '2026-06-01T00:00')
+    await user.type(screen.getByPlaceholderText('Ask a question...'), 'why JWT?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    await waitFor(() =>
+      expect(api.postQuery).toHaveBeenCalledWith('why JWT?', '2026-06-01T00:00'),
+    )
+  })
+
+  it('omits as_of when no time-travel date is set', async () => {
+    const user = userEvent.setup()
+    render(<AskPage />)
+
+    await waitFor(() => expect(api.getLogs).toHaveBeenCalled())
+
+    await user.type(screen.getByPlaceholderText('Ask a question...'), 'why JWT?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    await waitFor(() => expect(api.postQuery).toHaveBeenCalledWith('why JWT?', undefined))
+  })
 })

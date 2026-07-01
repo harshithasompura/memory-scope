@@ -8,6 +8,7 @@ import { useAsync } from '../hooks/useAsync'
 
 export function AskPage() {
   const [question, setQuestion] = useState('')
+  const [asOf, setAsOf] = useState('')
   const ask = useAsync(postQuery)
   const fetchLogs = useAsync(getLogs)
   const logs = fetchLogs.state.status === 'success' ? fetchLogs.state.data : []
@@ -19,7 +20,10 @@ export function AskPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    ask.run(question).then(() => fetchLogs.run()).catch(() => {})
+    ask
+      .run(question, asOf || undefined)
+      .then(() => fetchLogs.run())
+      .catch(() => {})
   }
 
   return (
@@ -32,6 +36,18 @@ export function AskPage() {
           className="w-full rounded border border-gray-300 p-2 text-sm"
           rows={3}
         />
+        <div>
+          <label htmlFor="as-of" className="mr-2 text-sm text-gray-700">
+            As of
+          </label>
+          <input
+            id="as-of"
+            type="datetime-local"
+            value={asOf}
+            onChange={(e) => setAsOf(e.target.value)}
+            className="rounded border border-gray-300 p-1 text-sm"
+          />
+        </div>
         <Button type="submit" loading={ask.state.status === 'loading'} disabled={!question.trim()}>
           {ask.state.status === 'loading' ? 'Thinking...' : 'Ask'}
         </Button>
