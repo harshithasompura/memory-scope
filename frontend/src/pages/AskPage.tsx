@@ -51,7 +51,7 @@ export function AskPage() {
         ) : (
           <ul>
             {logs.map((entry) => (
-              <RecommendationRow key={entry.id} entry={entry} />
+              <RecommendationRow key={entry.id} entry={entry} onResolved={() => fetchLogs.run()} />
             ))}
           </ul>
         )}

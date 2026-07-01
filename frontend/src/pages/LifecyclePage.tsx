@@ -152,7 +152,12 @@ function ForgetForm({ dataset }: { dataset: string }) {
       </form>
 
       {forget.state.status === 'error' && <ErrorState message={forget.state.error} />}
-      {result && <CountDelta before={result.counts_before} after={result.counts_after} />}
+      {result && (
+        <>
+          <p className="text-sm text-gray-700">{result.flagged_count} recommendation(s) affected</p>
+          <CountDelta before={result.counts_before} after={result.counts_after} />
+        </>
+      )}
     </Card>
   )
 }

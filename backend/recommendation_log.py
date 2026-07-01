@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS recommendations (
     answer_text TEXT NOT NULL,
     cited_chunk_ids TEXT NOT NULL,
     cited_data_ids TEXT NOT NULL,
-    suspect INTEGER NOT NULL DEFAULT 0
+    suspect INTEGER NOT NULL DEFAULT 0,
+    resolved INTEGER NOT NULL DEFAULT 0
 );
 """
 
@@ -22,6 +23,12 @@ def _connect() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute(_SCHEMA)
+    # Migration: add resolved column to existing DBs that predate this schema.
+    # SQLite lacks ADD COLUMN IF NOT EXISTS so we suppress the duplicate-column error.
+    try:
+        conn.execute("ALTER TABLE recommendations ADD COLUMN resolved INTEGER NOT NULL DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
     return conn
 
 
@@ -50,9 +57,31 @@ def list_all() -> list[dict]:
             "cited_chunk_ids": json.loads(r["cited_chunk_ids"]),
             "cited_data_ids": json.loads(r["cited_data_ids"]),
             "suspect": bool(r["suspect"]),
+            "resolved": bool(r["resolved"]),
         }
         for r in rows
     ]
+
+
+def get(rec_id: int) -> dict | None:
+    """Return a single recommendation row by id, or None if not found."""
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM recommendations WHERE id = ?", (rec_id,)).fetchone()
+    if row is None:
+        return None
+    return {
+        **dict(row),
+        "cited_chunk_ids": json.loads(row["cited_chunk_ids"]),
+        "cited_data_ids": json.loads(row["cited_data_ids"]),
+        "suspect": bool(row["suspect"]),
+        "resolved": bool(row["resolved"]),
+    }
+
+
+def resolve(rec_id: int) -> None:
+    """Mark a recommendation as resolved. Never touches suspect."""
+    with _connect() as conn:
+        conn.execute("UPDATE recommendations SET resolved = 1 WHERE id = ?", (rec_id,))
 
 
 def flag_suspect_by_data_id(data_id: str) -> int:

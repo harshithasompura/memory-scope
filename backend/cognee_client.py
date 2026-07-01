@@ -102,7 +102,7 @@ async def query(question: str) -> dict:
     else:
         answer = getattr(results[0], "text", str(results[0]))
 
-    recommendation_log.record(
+    log_id = recommendation_log.record(
         question=question,
         answer_text=answer,
         cited_chunk_ids=cited_chunk_ids,
@@ -115,6 +115,7 @@ async def query(question: str) -> dict:
         "cited_chunk_ids": cited_chunk_ids,
         "cited_data_ids": cited_data_ids,
         "trace": trace,
+        "log_id": log_id,
     }
 
 

@@ -6,6 +6,7 @@ import type {
   IngestResponse,
   LogEntry,
   QueryResponse,
+  ReaskResponse,
 } from './types'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
@@ -55,4 +56,12 @@ export function postForget(dataset: string, dataId?: string): Promise<ForgetResp
 
 export function postImprove(dataset: string): Promise<ImproveResponse> {
   return request('/improve', { method: 'POST', body: JSON.stringify({ dataset }) })
+}
+
+export function postReask(recId: number): Promise<ReaskResponse> {
+  return request(`/logs/${recId}/reask`, { method: 'POST' })
+}
+
+export function postResolve(recId: number): Promise<{ status: string }> {
+  return request(`/logs/${recId}/resolve`, { method: 'POST' })
 }

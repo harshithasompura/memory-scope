@@ -26,6 +26,15 @@ export interface LogEntry {
   cited_chunk_ids: string[]
   cited_data_ids: string[]
   suspect: boolean
+  resolved: boolean
+}
+
+export interface ReaskResponse {
+  old_cited_data_ids: string[]
+  new_cited_data_ids: string[]
+  new_answer: string
+  changed: boolean
+  new_log_id: number | null
 }
 
 export interface GraphResponse {
