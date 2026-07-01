@@ -89,6 +89,47 @@ def test_resolve_leaves_suspect_unchanged_when_not_suspect():
 
 
 # ---------------------------------------------------------------------------
+# flag_suspect_by_data_id()
+# ---------------------------------------------------------------------------
+
+def test_flag_suspect_by_data_id_returns_zero_when_no_match():
+    recommendation_log.record(question="q", answer_text="a", cited_chunk_ids=[], cited_data_ids=["d1"])
+    count = recommendation_log.flag_suspect_by_data_id("d-missing")
+    assert count == 0
+
+
+def test_flag_suspect_by_data_id_flags_single_match():
+    rec_id = recommendation_log.record(question="q", answer_text="a", cited_chunk_ids=[], cited_data_ids=["d1"])
+    count = recommendation_log.flag_suspect_by_data_id("d1")
+    assert count == 1
+    assert recommendation_log.get(rec_id)["suspect"] is True
+
+
+def test_flag_suspect_by_data_id_flags_all_matching_rows():
+    rec1 = recommendation_log.record(question="q1", answer_text="a1", cited_chunk_ids=[], cited_data_ids=["d1"])
+    rec2 = recommendation_log.record(question="q2", answer_text="a2", cited_chunk_ids=[], cited_data_ids=["d1", "d2"])
+    rec3 = recommendation_log.record(question="q3", answer_text="a3", cited_chunk_ids=[], cited_data_ids=["d2"])
+
+    count = recommendation_log.flag_suspect_by_data_id("d1")
+
+    assert count == 2
+    assert recommendation_log.get(rec1)["suspect"] is True
+    assert recommendation_log.get(rec2)["suspect"] is True
+    assert recommendation_log.get(rec3)["suspect"] is False
+
+
+def test_flag_suspect_by_data_id_skips_already_suspect_rows():
+    """Rows already suspect=1 are excluded from the WHERE clause, so re-flagging returns 0."""
+    rec_id = recommendation_log.record(question="q", answer_text="a", cited_chunk_ids=[], cited_data_ids=["d1"])
+    first_count = recommendation_log.flag_suspect_by_data_id("d1")
+    second_count = recommendation_log.flag_suspect_by_data_id("d1")
+
+    assert first_count == 1
+    assert second_count == 0
+    assert recommendation_log.get(rec_id)["suspect"] is True
+
+
+# ---------------------------------------------------------------------------
 # get()
 # ---------------------------------------------------------------------------
 
