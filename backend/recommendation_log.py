@@ -100,6 +100,18 @@ def blast_radius(data_id: str) -> dict:
     }
 
 
+def suspect_data_ids() -> list[str]:
+    """Distinct data_ids cited by any suspect recommendation. Lets the graph
+    view highlight the nodes a forgotten fact contaminated."""
+    with _connect() as conn:
+        rows = conn.execute("SELECT cited_data_ids FROM recommendations WHERE suspect = 1").fetchall()
+    seen: dict[str, None] = {}
+    for r in rows:
+        for did in json.loads(r["cited_data_ids"]):
+            seen[did] = None
+    return list(seen)
+
+
 def flag_suspect_by_data_id(data_id: str) -> int:
     """Mark every logged recommendation that cited data_id as suspect. Returns count flagged."""
     with _connect() as conn:

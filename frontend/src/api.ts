@@ -1,7 +1,9 @@
 import type {
   Dataset,
   DatasetDocument,
+  ForgetPreview,
   ForgetResponse,
+  GraphData,
   GraphResponse,
   ImproveResponse,
   IngestResponse,
@@ -39,6 +41,10 @@ export function getGraph(): Promise<GraphResponse> {
   return request('/graph')
 }
 
+export function getGraphData(dataset = 'engineering_decisions'): Promise<GraphData> {
+  return request(`/graph/data?dataset=${encodeURIComponent(dataset)}`)
+}
+
 export function getDatasets(): Promise<Dataset[]> {
   return request('/datasets')
 }
@@ -53,6 +59,12 @@ export function postIngest(text: string, dataset: string): Promise<IngestRespons
 
 export function postIngestGithub(url: string, dataset: string): Promise<IngestResponse> {
   return request('/ingest/github', { method: 'POST', body: JSON.stringify({ url, dataset }) })
+}
+
+export function getForgetPreview(dataset: string, dataId?: string): Promise<ForgetPreview> {
+  const params = new URLSearchParams({ dataset })
+  if (dataId) params.set('data_id', dataId)
+  return request(`/forget/preview?${params.toString()}`)
 }
 
 export function postForget(dataset: string, dataId?: string): Promise<ForgetResponse> {

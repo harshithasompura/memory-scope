@@ -92,6 +92,21 @@ def test_resolve_leaves_suspect_unchanged_when_not_suspect():
 # flag_suspect_by_data_id()
 # ---------------------------------------------------------------------------
 
+def test_suspect_data_ids_empty_when_nothing_suspect():
+    recommendation_log.record(question="q", answer_text="a", cited_chunk_ids=[], cited_data_ids=["d1"])
+    assert recommendation_log.suspect_data_ids() == []
+
+
+def test_suspect_data_ids_returns_distinct_ids_from_suspect_rows_only():
+    recommendation_log.record(question="q1", answer_text="a1", cited_chunk_ids=[], cited_data_ids=["d1", "d2"])
+    recommendation_log.record(question="q2", answer_text="a2", cited_chunk_ids=[], cited_data_ids=["d3"])
+    recommendation_log.flag_suspect_by_data_id("d1")  # flags only the first row
+
+    result = recommendation_log.suspect_data_ids()
+
+    assert sorted(result) == ["d1", "d2"]  # d3 is from a non-suspect row, excluded
+
+
 def test_flag_suspect_by_data_id_returns_zero_when_no_match():
     recommendation_log.record(question="q", answer_text="a", cited_chunk_ids=[], cited_data_ids=["d1"])
     count = recommendation_log.flag_suspect_by_data_id("d-missing")

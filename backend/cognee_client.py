@@ -118,12 +118,18 @@ async def ingest_github(url: str, dataset: str) -> dict:
         raise ValueError(f"not a GitHub issue/PR URL: {url}")
     owner, repo, number = match.groups()
     api_base = f"https://api.github.com/repos/{owner}/{repo}/issues/{number}"
+    # Anonymous GitHub API is capped at 60 req/hr and 403s under demo load.
+    # A token (GITHUB_TOKEN) lifts it to 5000/hr. Optional: works without one.
+    headers = {}
+    token = os.getenv("GITHUB_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     async with httpx.AsyncClient() as client:
-        issue_resp = await client.get(api_base)
+        issue_resp = await client.get(api_base, headers=headers)
         issue_resp.raise_for_status()
         issue = issue_resp.json()
 
-        comments_resp = await client.get(f"{api_base}/comments")
+        comments_resp = await client.get(f"{api_base}/comments", headers=headers)
         comments_resp.raise_for_status()
         comments = comments_resp.json()
 
@@ -308,3 +314,53 @@ async def get_graph_html(dataset: str = "engineering_decisions") -> str:
         return html if html else "<p>Graph empty. Ingest data first.</p>"
     except Exception as e:
         return f"<p>Graph unavailable: {e}</p>"
+
+
+_KIND_MAP = {
+    "TextDocument": "document",
+    "DocumentChunk": "chunk",
+    "TextSummary": "summary",
+    "EntityType": "type",
+    "Entity": "entity",
+}
+
+
+async def get_graph_data(dataset: str = "engineering_decisions") -> dict:
+    """Extract raw nodes/edges for the dataset, shaped for a custom force-graph
+    render. Uses the same dataset-scoping context as cognee.visualize_graph so
+    multi-tenant graphs resolve to the owning user (a bare get_graph_data() call
+    outside this context sees an empty graph)."""
+    from cognee.modules.data.methods import get_authorized_existing_datasets
+    from cognee.modules.users.methods import get_default_user
+    from cognee.context_global_variables import set_database_global_context_variables
+
+    user = await get_default_user()
+    datasets = await get_authorized_existing_datasets([dataset], "read", user)
+    if not datasets:
+        return {"nodes": [], "edges": [], "suspect_ids": []}
+
+    async with set_database_global_context_variables(datasets[0].id, datasets[0].owner_id):
+        engine = await get_graph_engine()
+        raw_nodes, raw_edges = await engine.get_graph_data()
+
+    nodes = []
+    for nid, props in raw_nodes:
+        ntype = props.get("type") or "Entity"
+        label = props.get("name") or (props.get("text") or "")[:40] or ntype
+        nodes.append(
+            {
+                "id": str(nid),
+                "label": label,
+                "kind": _KIND_MAP.get(ntype, "entity"),
+                "truth": props.get("truth_alignment"),
+            }
+        )
+    edges = [
+        {"source": str(s), "target": str(t), "label": rel}
+        for (s, t, rel, *_rest) in raw_edges
+    ]
+    return {
+        "nodes": nodes,
+        "edges": edges,
+        "suspect_ids": recommendation_log.suspect_data_ids(),
+    }

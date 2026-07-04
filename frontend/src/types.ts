@@ -42,6 +42,27 @@ export interface GraphResponse {
   html: string
 }
 
+export type GraphNodeKind = 'document' | 'chunk' | 'summary' | 'type' | 'entity'
+
+export interface GraphNode {
+  id: string
+  label: string
+  kind: GraphNodeKind
+  truth: number | null
+}
+
+export interface GraphEdge {
+  source: string
+  target: string
+  label: string
+}
+
+export interface GraphData {
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+  suspect_ids: string[]
+}
+
 export interface Dataset {
   id: string
   name: string
@@ -86,6 +107,10 @@ export interface ForgetResponse {
   counts_before: GraphCounts
   counts_after: GraphCounts
 }
+
+export type ForgetPreview =
+  | { dataset: string; data_id: string; count: number; most_recent: string | null; avg_confidence: number }
+  | { dataset: string; document_count: number }
 
 export interface ImproveResponse {
   status: string
