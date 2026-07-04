@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import type { LogEntry } from '../types'
 import { postReask, postResolve } from '../api'
 import { useAsync } from '../hooks/useAsync'
 import { Badge } from './Badge'
 import { Button } from './Button'
 
-const CITATION_UNTRACKED_LABEL = 'citation untracked — cannot verify'
+const CITATION_UNTRACKED_LABEL = 'citation untracked, cannot verify'
 
 interface Props {
   entry: LogEntry
@@ -23,16 +24,20 @@ export function RecommendationRow({ entry, onResolved }: Props) {
   const citationUntracked = entry.cited_data_ids.length === 0
 
   return (
-    <li className="border-b border-gray-200 py-2">
+    <li className="border-b border-ink/10 py-2">
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
         className="flex w-full items-center justify-between gap-2 text-left"
       >
         <span className="truncate">{entry.question}</span>
-        <span className="flex items-center gap-1">
-          {entry.resolved && <Badge>resolved</Badge>}
-          {entry.suspect && !entry.resolved && <Badge>suspect</Badge>}
+        <span className="flex items-center gap-2">
+          {entry.resolved && <Badge variant="resolved">resolved</Badge>}
+          {entry.suspect && !entry.resolved && <Badge variant="suspect">suspect</Badge>}
+          <ChevronDown
+            size={16}
+            className={`shrink-0 text-ink/30 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+          />
         </span>
       </button>
       <div
@@ -41,12 +46,12 @@ export function RecommendationRow({ entry, onResolved }: Props) {
         }`}
       >
         <div className="overflow-hidden">
-          <p className="mt-2 text-sm text-gray-700">{entry.answer_text}</p>
+          <p className="mt-2 text-sm text-ink/70">{entry.answer_text}</p>
 
           {/* Provenance chain: answer -> cited chunks -> source data_ids. UI-only render of existing log fields. */}
-          <div className="mt-2 font-mono text-xs text-gray-500">
+          <div className="mt-2 font-mono text-xs text-ink/50">
             {entry.cited_data_ids.length === 0 ? (
-              <p className="text-amber-600">{CITATION_UNTRACKED_LABEL}</p>
+              <p className="text-stale">{CITATION_UNTRACKED_LABEL}</p>
             ) : (
               <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
                 <span>answer</span>
@@ -82,16 +87,16 @@ export function RecommendationRow({ entry, onResolved }: Props) {
                 <div className="mt-3 space-y-2">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs font-medium text-gray-500">Old answer</p>
-                      <p className="text-sm text-gray-700">{entry.answer_text}</p>
-                      <p className="mt-1 font-mono text-xs text-gray-400">
+                      <p className="font-mono text-xs tracking-wide text-ink/40 uppercase">Old answer</p>
+                      <p className="mt-1 text-sm text-ink/70">{entry.answer_text}</p>
+                      <p className="mt-1 font-mono text-xs text-ink/40">
                         data: {entry.cited_data_ids.join(', ') || 'none'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500">New answer</p>
-                      <p className="text-sm text-gray-700">{reask.state.data.new_answer}</p>
-                      <p className="mt-1 font-mono text-xs text-gray-400">
+                      <p className="font-mono text-xs tracking-wide text-resolved uppercase">New answer</p>
+                      <p className="mt-1 text-sm text-ink/70">{reask.state.data.new_answer}</p>
+                      <p className="mt-1 font-mono text-xs text-ink/40">
                         data: {reask.state.data.new_cited_data_ids.join(', ') || 'none'}
                       </p>
                     </div>
@@ -103,8 +108,8 @@ export function RecommendationRow({ entry, onResolved }: Props) {
               )}
 
               {reask.state.status === 'success' && !reask.state.data.changed && (
-                <p className="mt-2 text-sm text-gray-500">
-                  Still suspect — no correction found in memory yet.
+                <p className="mt-2 text-sm text-ink/50">
+                  Still suspect. No correction found in memory yet.
                 </p>
               )}
             </div>

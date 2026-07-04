@@ -6,10 +6,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean
 }
 
-const base = 'rounded px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50'
+const base =
+  'inline-flex items-center gap-2 rounded-lg px-4 py-2 font-mono text-sm font-medium transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed'
 const variants = {
-  primary: 'bg-accent text-white hover:bg-accent/90',
-  secondary: 'border border-gray-300 text-gray-700 hover:bg-gray-100',
+  primary: 'bg-ink text-paper hover:-translate-y-0.5',
+  secondary: 'border border-ink/15 text-ink/70 hover:border-ink/40 hover:text-ink',
 }
 
 export function Button({
@@ -22,7 +23,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`${base} ${variants[variant]} ${className} inline-flex items-center gap-2`}
+      className={`${base} ${variants[variant]} ${className}`}
       disabled={disabled || loading}
       {...rest}
     >

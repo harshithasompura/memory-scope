@@ -79,7 +79,7 @@ describe('RecommendationRow', () => {
         <RecommendationRow entry={untrackedEntry} />
       </ul>,
     )
-    const btn = screen.getByRole('button', { name: 'citation untracked — cannot verify' })
+    const btn = screen.getByRole('button', { name: 'citation untracked, cannot verify' })
     expect(btn).toBeInTheDocument()
     expect(btn).toBeDisabled()
   })
@@ -96,7 +96,7 @@ describe('RecommendationRow', () => {
         <RecommendationRow entry={untrackedEntry} />
       </ul>,
     )
-    expect(screen.getByText('citation untracked — cannot verify')).toBeInTheDocument()
+    expect(screen.getByText('citation untracked, cannot verify')).toBeInTheDocument()
   })
 
   it('renders provenance chain with chunk and source data when citations present', () => {
@@ -150,7 +150,7 @@ describe('RecommendationRow', () => {
 
     await user.click(screen.getByText('Re-ask'))
     await waitFor(() =>
-      expect(screen.getByText('Still suspect — no correction found in memory yet.')).toBeInTheDocument(),
+      expect(screen.getByText('Still suspect. No correction found in memory yet.')).toBeInTheDocument(),
     )
     expect(screen.queryByText('Mark resolved')).not.toBeInTheDocument()
   })

@@ -8,10 +8,15 @@ vi.mock('../api')
 
 describe('LifecyclePage', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     vi.mocked(api.getDatasets).mockResolvedValue([
       { id: '1', name: 'engineering_decisions', created_at: '' },
     ])
     vi.mocked(api.getDatasetDocuments).mockResolvedValue([])
+    vi.mocked(api.getForgetPreview).mockResolvedValue({
+      dataset: 'engineering_decisions',
+      document_count: 3,
+    })
     vi.mocked(api.postForget).mockResolvedValue({
       status: 'ok',
       dataset: 'engineering_decisions',
@@ -31,11 +36,20 @@ describe('LifecyclePage', () => {
     await waitFor(() => expect(api.getDatasets).toHaveBeenCalled())
 
     await user.click(screen.getByRole('button', { name: 'Forget' }))
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'Yes, forget' }))
 
     await waitFor(() => expect(screen.getByText(/46.*28/)).toBeInTheDocument())
   })
 
   it('forget shows blast radius count, recency, and confidence when recs are affected', async () => {
+    vi.mocked(api.getForgetPreview).mockResolvedValue({
+      dataset: 'engineering_decisions',
+      data_id: 'd1',
+      count: 2,
+      most_recent: '2026-07-01T12:00:00+00:00',
+      avg_confidence: 0.75,
+    })
     vi.mocked(api.postForget).mockResolvedValue({
       status: 'ok',
       dataset: 'engineering_decisions',
@@ -50,16 +64,35 @@ describe('LifecyclePage', () => {
     render(<LifecyclePage />)
 
     await waitFor(() => expect(api.getDatasets).toHaveBeenCalled())
+    await user.type(screen.getByPlaceholderText(/data_id/), 'd1')
     await user.click(screen.getByRole('button', { name: 'Forget' }))
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'Yes, forget' }))
 
     await waitFor(() => expect(screen.getByText(/2 recommendation\(s\) affected/)).toBeInTheDocument())
     expect(screen.getByText(/avg confidence 75%/)).toBeInTheDocument()
   })
 
+  it('blocks the real forget call until the confirm dialog is accepted', async () => {
+    const user = userEvent.setup()
+    render(<LifecyclePage />)
+
+    await waitFor(() => expect(api.getDatasets).toHaveBeenCalled())
+    await user.click(screen.getByRole('button', { name: 'Forget' }))
+
+    await waitFor(() => expect(api.getForgetPreview).toHaveBeenCalled())
+    expect(api.postForget).not.toHaveBeenCalled()
+
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(api.postForget).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
   it('shows a stale badge for documents past the staleness threshold', async () => {
     vi.mocked(api.getDatasetDocuments).mockResolvedValue([
-      { id: 'doc-old', name: 'session-auth.md', created_at: '2026-06-01T00:00:00Z', stale: true },
-      { id: 'doc-new', name: 'oauth.md', created_at: '2026-06-30T23:00:00Z', stale: false },
+      { id: 'doc-old', name: 'session-auth.md', created_at: '2026-06-01T00:00:00Z', stale: true, contradiction: false },
+      { id: 'doc-new', name: 'oauth.md', created_at: '2026-06-30T23:00:00Z', stale: false, contradiction: false },
     ])
 
     render(<LifecyclePage />)
