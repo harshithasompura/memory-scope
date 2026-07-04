@@ -5,8 +5,7 @@ import { postReask, postResolve } from '../api'
 import { useAsync } from '../hooks/useAsync'
 import { Badge } from './Badge'
 import { Button } from './Button'
-
-const CITATION_UNTRACKED_LABEL = 'citation untracked, cannot verify'
+import { CitationChain, CITATION_UNTRACKED_LABEL } from './CitationChain'
 
 interface Props {
   entry: LogEntry
@@ -48,21 +47,11 @@ export function RecommendationRow({ entry, onResolved }: Props) {
         <div className="overflow-hidden">
           <p className="mt-2 text-sm text-ink/70">{entry.answer_text}</p>
 
-          {/* Provenance chain: answer -> cited chunks -> source data_ids. UI-only render of existing log fields. */}
-          <div className="mt-2 font-mono text-xs text-ink/50">
-            {entry.cited_data_ids.length === 0 ? (
-              <p className="text-stale">{CITATION_UNTRACKED_LABEL}</p>
-            ) : (
-              <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
-                <span>answer</span>
-                <span aria-hidden="true">→</span>
-                <span>
-                  chunks: {entry.cited_chunk_ids.length > 0 ? entry.cited_chunk_ids.join(', ') : 'none'}
-                </span>
-                <span aria-hidden="true">→</span>
-                <span>source: {entry.cited_data_ids.join(', ')}</span>
-              </div>
-            )}
+          <div className="mt-2">
+            <CitationChain
+              citedChunkIds={entry.cited_chunk_ids}
+              citedDataIds={entry.cited_data_ids}
+            />
           </div>
 
           {/* Re-ask flow: only shown for suspect rows that are not yet resolved */}

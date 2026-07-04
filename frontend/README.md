@@ -45,5 +45,5 @@ pnpm build
 ## Routes
 
 - `/ask` (default) — question form, answer, recommendation log
-- `/graph` — Cognee graph viewer (iframe)
+- `/graph` — custom force-directed memory graph (suspect nodes highlighted)
 - `/lifecycle` — remember / forget / improve forms

@@ -11,10 +11,10 @@ const SUSPECTS = [
 ]
 
 const STEPS = [
-  { n: '01', op: 'remember', text: 'Ingest ADRs, postmortems, and GitHub issues into the graph.' },
-  { n: '02', op: 'recall', text: 'Answer questions, logging every source each answer cited.' },
-  { n: '03', op: 'forget', text: 'Correct a fact by deleting the stale source it came from.' },
-  { n: '04', op: 're-ask', text: 'Suspect answers regenerate against the corrected truth.' },
+  { n: '01', op: 'remember', text: 'Bring in your ADRs, postmortems, and GitHub issues.' },
+  { n: '02', op: 'recall', text: 'Ask anything. Every answer remembers the sources it used.' },
+  { n: '03', op: 'forget', text: 'Learn a fact was wrong? Remove the source it came from.' },
+  { n: '04', op: 're-ask', text: 'The flagged answers refresh against what you now know.' },
 ]
 
 const OPS = [
@@ -53,26 +53,27 @@ export function LandingPage() {
             </span>
           </a>
           <h1 className="font-mono text-4xl leading-[1.12] font-extrabold tracking-tight text-ink sm:text-5xl">
-            A fact you trusted
+            When a fact changes,
             <br />
-            was wrong.
+            which answers
             <br />
-            What did it poison?
+            still trust it?
           </h1>
           <p className="mt-7 max-w-xl text-lg leading-relaxed text-ink/60">
-            MemoryScope logs every answer and the sources it cited. Correct one fact with{' '}
+            MemoryScope keeps a log of every answer and the sources behind it. Correct one fact
+            with{' '}
             <code className="rounded bg-ink/5 px-1.5 py-0.5 font-mono text-[0.9em] text-ink">
               forget()
             </code>
-            , and it flags every past recommendation that leaned on the old one. From the
-            citation log, not a language model's guess.
+            , and it quietly points out the past answers that relied on the old one. Straight from
+            the log itself, not a language model's guess.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <Link
               to="/ask"
               className="group inline-flex items-center gap-2 rounded-lg bg-ink px-5 py-3 font-mono text-sm font-medium text-paper transition-transform hover:-translate-y-0.5"
             >
-              Trace a correction
+              See it in action
               <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
             </Link>
             <a
@@ -119,10 +120,10 @@ export function LandingPage() {
               Staleness is not hallucination.
             </h2>
             <p className="mt-5 text-base leading-relaxed text-ink/60">
-              A suspect flag is computed from a SQLite citation log and a{' '}
-              <code className="font-mono text-[0.9em] text-ink">forget()</code> event. It cannot
-              hallucinate, because no model decides it. All four Cognee memory operations are
-              load-bearing here.
+              A suspect flag comes from a simple join: the citation log and a{' '}
+              <code className="font-mono text-[0.9em] text-ink">forget()</code> event. There's no
+              model in the loop to second-guess, so it can't hallucinate. And it leans on all four
+              Cognee memory operations to get there.
             </p>
           </div>
           <div className="overflow-hidden rounded-xl border border-ink/10 bg-white">
@@ -145,7 +146,7 @@ export function LandingPage() {
       <section className="border-t border-ink/10 bg-ink">
         <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-6 py-16 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-mono text-xl font-bold tracking-tight text-paper">
-            See which answers went stale.
+            Find the answers worth a second look.
           </p>
           <Link
             to="/ask"
