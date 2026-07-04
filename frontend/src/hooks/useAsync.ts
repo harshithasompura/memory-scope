@@ -1,4 +1,5 @@
 import { useCallback, useReducer } from 'react'
+import { beginLoading, endLoading } from './loadingSignal'
 
 type State<T> =
   | { status: 'idle' }
@@ -31,6 +32,7 @@ export function useAsync<T, Args extends unknown[]>(fn: (...args: Args) => Promi
   const run = useCallback(
     async (...args: Args) => {
       dispatch({ type: 'start' })
+      beginLoading()
       try {
         const data = await fn(...args)
         dispatch({ type: 'success', data })
@@ -38,6 +40,8 @@ export function useAsync<T, Args extends unknown[]>(fn: (...args: Args) => Promi
       } catch (err) {
         dispatch({ type: 'error', error: err instanceof Error ? err.message : String(err) })
         throw err
+      } finally {
+        endLoading()
       }
     },
     [fn],

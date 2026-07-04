@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "/Users/som/Desktop/memory-scope/frontend/node_modules/vite/bin/vite.js",
+        "/Users/som/Desktop/memory-scope/frontend",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
+      "port": 5173,
+      "autoPort": true
+    }
+  ]
+}
