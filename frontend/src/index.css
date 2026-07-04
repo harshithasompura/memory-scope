@@ -1,8 +1,39 @@
 @import 'tailwindcss';
 
+@theme {
+  --color-accent: #BC9AFF;
+  --color-accent-deep: #6D40E0;
+  --color-ink: #16161A;
+  --color-paper: #F8F8F8;
+  --color-stale: #D97706;
+  --color-suspect: #E5484D;
+  --color-resolved: #30A46C;
+  --color-contradiction: #E5484D;
+  --font-sans: system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+}
+
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
   background: #f3f4f6;
-  color: #1f2937;
+  color: var(--color-ink);
+}
+
+/* ponytail: one keyframe reused by the blast-radius hero; reduced-motion
+   users get the final state with no travel. */
+@keyframes ms-drop {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ms-anim { animation: none !important; opacity: 1 !important; transform: none !important; }
+}
+
+/* ponytail: repeating dot pattern, not a color gradient — spec's
+   no-gradient rule is about smooth color blends, this is a texture. */
+.bg-dot-grid {
+  background-image: radial-gradient(var(--color-accent) 1px, transparent 1px);
+  background-size: 12px 12px;
+  background-color: color-mix(in srgb, var(--color-accent) 6%, transparent);
 }

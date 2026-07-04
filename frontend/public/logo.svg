@@ -1,0 +1,22 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ms-logo-bg" x1="24" y1="24" x2="216" y2="216" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#C9AFFF"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="8" y="8" width="224" height="224" rx="54" fill="url(#ms-logo-bg)"/>
+
+  <!-- magnifying glass -->
+  <circle cx="102" cy="102" r="50" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+  <line x1="137" y1="137" x2="178" y2="178" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round"/>
+
+  <!-- open graph of 3 nodes, centered in the lens, open path not a closed triangle -->
+  <line x1="102" y1="76" x2="79" y2="117" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
+  <line x1="79" y1="117" x2="125" y2="117" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
+
+  <circle cx="102" cy="76" r="7" fill="#FFFFFF"/>
+  <circle cx="79" cy="117" r="7" fill="#FFFFFF"/>
+  <circle cx="125" cy="117" r="7" fill="#FFFFFF"/>
+</svg>
