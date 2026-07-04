@@ -10,4 +10,5 @@ __pycache__/
 
 # Data
 *.db
+*.db.bak-*
 backend/recommendation_log.db
