@@ -74,7 +74,8 @@ flowchart LR
 | Store / recall / improve / forget over a memory graph | A **recommendation log** of every answer + its citations |
 | Semantic retrieval, graph completion | **Blast radius**: how many past answers a `forget()` invalidates |
 | Graph of entities and documents | **Suspect flagging**, computed from the log, not an LLM verdict |
-| | Re-ask a suspect answer to get the corrected one |
+| Per-session Q&A caching | Re-ask a suspect answer to get the corrected one |
+| Session→graph bridging via `improve(session_ids=...)` | Every ask runs in its own session and is logged, so **Improve** visibly folds past Q&A back into the graph (feedback weights, persistence, distillation) |
 
 The suspect flag cannot hallucinate, because no model produces it: it is a
 join between the SQLite citation log and a `forget()` event.
@@ -95,30 +96,36 @@ uvicorn backend.app:app --reload
 
 ```bash
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 ## Seed & demo
 
-Populate the graph with the 8 ADR/postmortem seed docs (auth: session → JWT →
-OAuth; DB: connection-per-request → PgBouncer). Run with the API server
-**stopped**. Cognee's graph store is single-writer.
+Populate the graph with the 10 ADR/postmortem/PEP seed docs (auth: session →
+JWT → OAuth; DB: connection-per-request → PgBouncer; async-io: PEP 3153 →
+PEP 3156). Run with the API server **stopped**. Cognee's graph store is
+single-writer.
 
 ```bash
-python scripts/seed.py
+python scripts/seed.py            # skip if already seeded
+FRESH=1 python scripts/seed.py    # full reset: dataset + logs + QA cache
 ```
 
-Walkthrough once seeded:
+Seeding itself demos contradiction detection: each postmortem flags the ADR
+it supersedes with a CONTRADICTION badge.
 
-1. **Ask** a question (e.g. *"How should we authenticate the mobile app?"*).
+1. **Ask** a question (e.g. *"Should we use JWT for authentication?"*).
    The answer shows the sources it cited underneath.
 2. Ask a couple more that lean on the same auth docs.
-3. **Lifecycle** → `forget()` the session-auth ADR. The confirm dialog shows
-   the **blast radius**: how many past answers this invalidates.
-4. Back on **Ask**, those answers now read **suspect**. Re-ask one to get the
-   corrected answer; the old row stays flagged.
-5. **Memory Graph** highlights the forgotten source's dependents.
+3. **Lifecycle** → hit **→ forget** next to the JWT ADR in the documents
+   list. The confirm dialog shows the **blast radius**: how many past
+   answers this invalidates.
+4. Back on **Ask**, those answers now read **suspect**. Re-ask one to see an
+   old/new comparison and mark it resolved; the history stays auditable.
+5. **Lifecycle → Improve** bridges the logged Q&A sessions back into the
+   graph — node/edge counts jump and the bridged sessions are reported.
+6. **Memory Graph** highlights the forgotten source's dependents.
 
 ## Known limitations
 
