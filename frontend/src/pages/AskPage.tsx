@@ -3,6 +3,7 @@ import { getLogs, postQuery } from '../api'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { CitationChain } from '../components/CitationChain'
+import { Markdown } from '../components/Markdown'
 import { ErrorState } from '../components/ErrorState'
 import { RecommendationRow } from '../components/RecommendationRow'
 import { useAsync } from '../hooks/useAsync'
@@ -57,7 +58,7 @@ export function AskPage() {
       {ask.state.status === 'error' && <ErrorState message={ask.state.error} />}
       {ask.state.status === 'success' && (
         <Card>
-          <p className="text-sm">{ask.state.data.answer}</p>
+          <Markdown className="text-sm text-ink">{ask.state.data.answer}</Markdown>
           <div className="mt-3 border-t border-ink/10 pt-3">
             <CitationChain
               citedChunkIds={ask.state.data.cited_chunk_ids ?? []}

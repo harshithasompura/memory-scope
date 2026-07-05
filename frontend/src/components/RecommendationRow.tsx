@@ -6,6 +6,7 @@ import { useAsync } from '../hooks/useAsync'
 import { Badge } from './Badge'
 import { Button } from './Button'
 import { CitationChain, CITATION_UNTRACKED_LABEL } from './CitationChain'
+import { Markdown } from './Markdown'
 
 interface Props {
   entry: LogEntry
@@ -45,7 +46,7 @@ export function RecommendationRow({ entry, onResolved }: Props) {
         }`}
       >
         <div className="overflow-hidden">
-          <p className="mt-2 text-sm text-ink/70">{entry.answer_text}</p>
+          <Markdown className="mt-2 text-sm text-ink/70">{entry.answer_text}</Markdown>
 
           <div className="mt-2">
             <CitationChain
@@ -77,14 +78,14 @@ export function RecommendationRow({ entry, onResolved }: Props) {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="font-mono text-xs tracking-wide text-ink/40 uppercase">Old answer</p>
-                      <p className="mt-1 text-sm text-ink/70">{entry.answer_text}</p>
+                      <Markdown className="mt-1 text-sm text-ink/70">{entry.answer_text}</Markdown>
                       <p className="mt-1 font-mono text-xs text-ink/40">
                         data: {entry.cited_data_ids.join(', ') || 'none'}
                       </p>
                     </div>
                     <div>
                       <p className="font-mono text-xs tracking-wide text-resolved uppercase">New answer</p>
-                      <p className="mt-1 text-sm text-ink/70">{reask.state.data.new_answer}</p>
+                      <Markdown className="mt-1 text-sm text-ink/70">{reask.state.data.new_answer}</Markdown>
                       <p className="mt-1 font-mono text-xs text-ink/40">
                         data: {reask.state.data.new_cited_data_ids.join(', ') || 'none'}
                       </p>
