@@ -115,6 +115,7 @@ export type ForgetPreview =
 export interface ImproveResponse {
   status: string
   dataset: string
+  sessions_bridged: string[]
   trace: TraceSummary
   counts_before: GraphCounts
   counts_after: GraphCounts

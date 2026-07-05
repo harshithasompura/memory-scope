@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 from datetime import datetime, timedelta, timezone
 import os
 import re
@@ -28,9 +28,11 @@ def _parse_verdict(text: str) -> tuple[bool, str]:
 async def _judge_contradiction(existing_answer: str, new_claim: str) -> tuple[bool, str]:
     client = anthropic.Anthropic(api_key=os.environ["LLM_API_KEY"])
     prompt = (
-        "Does the NEW CLAIM contradict the EXISTING ANSWER below, or is it "
-        "a refinement/extension of the same idea? Answer strictly in this "
-        "format (two lines, nothing else):\nyes|no\n<one-sentence reason>\n\n"
+        "You audit an engineering decision memory. Does the NEW CLAIM "
+        "supersede or conflict with the EXISTING ANSWER — would acting on "
+        "the existing answer today be a mistake? Reply with exactly two "
+        "lines and nothing else. First line: the single word yes or no. "
+        "Second line: one short sentence of reasoning.\n\n"
         f"EXISTING ANSWER:\n{existing_answer}\n\nNEW CLAIM:\n{new_claim}"
     )
     response = client.messages.create(
@@ -65,7 +67,25 @@ def _trace_summary() -> dict:
     }
 
 
-async def _graph_counts() -> dict:
+async def _graph_counts(dataset: str | None = None) -> dict:
+    # Bare engine metrics reflect whatever dataset context is active on this
+    # process — on a fresh process that's an empty graph, so before/after
+    # deltas lie (e.g. forget appearing to ADD nodes). Scope to the dataset
+    # whenever the caller knows it, same pattern as get_graph_data below.
+    if dataset is not None:
+        from cognee.modules.data.methods import get_authorized_existing_datasets
+        from cognee.modules.users.methods import get_default_user
+        from cognee.context_global_variables import set_database_global_context_variables
+
+        user = await get_default_user()
+        matches = await get_authorized_existing_datasets([dataset], "read", user)
+        if not matches:
+            return {"num_nodes": 0, "num_edges": 0}
+        async with set_database_global_context_variables(matches[0].id, matches[0].owner_id):
+            graph_engine = await get_graph_engine()
+            metrics = await graph_engine.get_graph_metrics()
+            return {"num_nodes": metrics["num_nodes"], "num_edges": metrics["num_edges"]}
+
     graph_engine = await get_graph_engine()
     metrics = await graph_engine.get_graph_metrics()
     return {"num_nodes": metrics["num_nodes"], "num_edges": metrics["num_edges"]}
@@ -97,11 +117,11 @@ async def _check_contradiction(text: str, counts_before: dict) -> dict | None:
 
 
 async def ingest(text: str, dataset: str) -> dict:
-    counts_before = await _graph_counts()
+    counts_before = await _graph_counts(dataset)
     contradiction = await _check_contradiction(text, counts_before)
     await cognee.add(text, dataset_name=dataset)
     await cognee.cognify()
-    counts_after = await _graph_counts()
+    counts_after = await _graph_counts(dataset)
     return {
         "status": "ok",
         "dataset": dataset,
@@ -203,7 +223,12 @@ async def query(question: str, as_of_ms: int | None = None) -> dict:
         if metadata.get("data_id"):
             cited_data_ids.append(metadata["data_id"])
 
-    results = await cognee.recall(question)
+    # Unique session per ask. Under a shared session (cognee's default),
+    # re-asking a question the session already answered makes the LLM reply
+    # "Acknowledged..." to its own prior answer instead of answering fresh —
+    # which broke the whole re-ask → resolve loop.
+    session_id = f"ask-{uuid4().hex[:12]}"
+    results = await cognee.recall(question, session_id=session_id)
     trace = _trace_summary()
 
     if not results:
@@ -222,6 +247,7 @@ async def query(question: str, as_of_ms: int | None = None) -> dict:
         answer_text=answer,
         cited_chunk_ids=cited_chunk_ids,
         cited_data_ids=cited_data_ids,
+        session_id=session_id,
     )
 
     return {
@@ -236,7 +262,7 @@ async def query(question: str, as_of_ms: int | None = None) -> dict:
 
 async def forget(dataset: str, data_id: str | None = None) -> dict:
     before_trace = _trace_summary()
-    counts_before = await _graph_counts()
+    counts_before = await _graph_counts(dataset)
 
     # Targeted deletion only. Never call cognee.prune here, it nukes
     # the whole system instead of one dataset.
@@ -246,7 +272,7 @@ async def forget(dataset: str, data_id: str | None = None) -> dict:
         await cognee.forget(dataset=dataset)
     clear_traces()
 
-    counts_after = await _graph_counts()
+    counts_after = await _graph_counts(dataset)
 
     flagged_count = 0
     blast_radius = {"count": 0, "most_recent": None, "avg_confidence": 0.0}
@@ -267,16 +293,43 @@ async def forget(dataset: str, data_id: str | None = None) -> dict:
 
 
 async def improve(dataset: str) -> dict:
-    counts_before = await _graph_counts()
-    await cognee.improve(dataset=dataset)
-    counts_after = await _graph_counts()
+    counts_before = await _graph_counts(dataset)
+    # Bridge the Q&A sessions this app logged into the permanent graph
+    # (feedback weights + session persistence + distillation). Without
+    # session_ids, cognee.improve only re-indexes triplet embeddings —
+    # no node/edge change, which reads as a silent no-op in the UI.
+    session_ids = recommendation_log.recent_session_ids()
+    await cognee.improve(dataset=dataset, session_ids=session_ids or None)
+    counts_after = await _graph_counts(dataset)
     return {
         "status": "ok",
         "dataset": dataset,
+        "sessions_bridged": session_ids,
         "trace": _trace_summary(),
         "counts_before": counts_before,
         "counts_after": counts_after,
     }
+
+
+async def purge_default_session(dataset: str) -> bool:
+    """Delete the shared 'default_session' QA cache and its vectors.
+
+    Queries recorded before per-ask sessions all wrote Q&A into
+    default_session, and CHUNKS recall (which passes no session) resolves to
+    default_session — so a stale cached answer outranks real chunks whenever
+    the exact same question is asked again, breaking citations and re-ask."""
+    from cognee.infrastructure.session.get_session_manager import get_session_manager
+    from cognee.modules.data.methods import get_authorized_existing_datasets
+    from cognee.modules.users.methods import get_default_user
+    from cognee.context_global_variables import set_database_global_context_variables
+
+    user = await get_default_user()
+    matches = await get_authorized_existing_datasets([dataset], "read", user)
+    if not matches:
+        return False
+    async with set_database_global_context_variables(matches[0].id, matches[0].owner_id):
+        sm = get_session_manager()
+        return await sm.delete_session(user_id=str(user.id), session_id="default_session")
 
 
 async def list_traces() -> list[dict]:

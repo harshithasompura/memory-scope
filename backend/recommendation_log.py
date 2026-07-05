@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS recommendations (
     cited_chunk_ids TEXT NOT NULL,
     cited_data_ids TEXT NOT NULL,
     suspect INTEGER NOT NULL DEFAULT 0,
-    resolved INTEGER NOT NULL DEFAULT 0
+    resolved INTEGER NOT NULL DEFAULT 0,
+    session_id TEXT NOT NULL DEFAULT ''
 );
 """
 
@@ -29,20 +30,31 @@ def _connect() -> sqlite3.Connection:
         conn.execute("ALTER TABLE recommendations ADD COLUMN resolved INTEGER NOT NULL DEFAULT 0")
     except sqlite3.OperationalError:
         pass
+    try:
+        conn.execute("ALTER TABLE recommendations ADD COLUMN session_id TEXT NOT NULL DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
     return conn
 
 
-def record(question: str, answer_text: str, cited_chunk_ids: list[str], cited_data_ids: list[str]) -> int:
+def record(
+    question: str,
+    answer_text: str,
+    cited_chunk_ids: list[str],
+    cited_data_ids: list[str],
+    session_id: str = "",
+) -> int:
     with _connect() as conn:
         cur = conn.execute(
-            "INSERT INTO recommendations (timestamp, question, answer_text, cited_chunk_ids, cited_data_ids) "
-            "VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO recommendations (timestamp, question, answer_text, cited_chunk_ids, cited_data_ids, session_id) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
             (
                 datetime.now(timezone.utc).isoformat(),
                 question,
                 answer_text,
                 json.dumps(cited_chunk_ids),
                 json.dumps(cited_data_ids),
+                session_id,
             ),
         )
         return cur.lastrowid
@@ -98,6 +110,19 @@ def blast_radius(data_id: str) -> dict:
         "most_recent": max(ts for ts, _ in matches),
         "avg_confidence": round(sum(shares) / len(shares), 2),
     }
+
+
+def recent_session_ids(limit: int = 20) -> list[str]:
+    """Distinct cognee session ids from the most recent asks, newest first.
+    Fed to cognee.improve(session_ids=...) so logged Q&A gets bridged into
+    the permanent graph."""
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT session_id FROM recommendations WHERE session_id != '' "
+            "GROUP BY session_id ORDER BY MAX(id) DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [r["session_id"] for r in rows]
 
 
 def suspect_data_ids() -> list[str]:
