@@ -30,6 +30,7 @@ function CountDelta({ before, after }: { before: GraphCounts; after: GraphCounts
 
 export function LifecyclePage() {
   const [dataset, setDataset] = useState(DEFAULT_DATASET)
+  const [forgetDataId, setForgetDataId] = useState('')
   const datasets = useAsync(getDatasets)
   const documents = useAsync(getDatasetDocuments)
 
@@ -68,9 +69,17 @@ export function LifecyclePage() {
       </div>
 
       <RememberForm dataset={dataset} />
-      <ForgetForm dataset={dataset} />
+      <ForgetForm
+        dataset={dataset}
+        dataId={forgetDataId}
+        setDataId={setForgetDataId}
+        onForgotten={() => documents.run(dataset)}
+      />
       <ImproveForm dataset={dataset} />
-      <DocumentsList documents={documents.state.status === 'success' ? documents.state.data : []} />
+      <DocumentsList
+        documents={documents.state.status === 'success' ? documents.state.data : []}
+        onForget={setForgetDataId}
+      />
     </div>
   )
 }
@@ -79,8 +88,10 @@ const DOCUMENTS_COLLAPSE_THRESHOLD = 10
 
 function DocumentsList({
   documents,
+  onForget,
 }: {
   documents: { id: string; name: string; stale: boolean; contradiction: boolean }[]
+  onForget: (dataId: string) => void
 }) {
   const [showAll, setShowAll] = useState(false)
 
@@ -96,8 +107,19 @@ function DocumentsList({
         {visible.map((doc) => (
           <li key={doc.id} className="flex items-center gap-2 text-sm">
             <span>{doc.name}</span>
+            <code className="font-mono text-xs text-ink/40" title={doc.id}>
+              {doc.id.slice(0, 8)}
+            </code>
             {doc.stale && <Badge variant="stale">stale</Badge>}
             {doc.contradiction && <Badge variant="contradiction">contradiction</Badge>}
+            <button
+              type="button"
+              onClick={() => onForget(doc.id)}
+              className="ml-auto cursor-pointer font-mono text-xs text-accent hover:underline"
+              title="fill the Forget form with this document's data_id"
+            >
+              → forget
+            </button>
           </li>
         ))}
       </ul>
@@ -186,8 +208,17 @@ function RememberForm({ dataset }: { dataset: string }) {
   )
 }
 
-function ForgetForm({ dataset }: { dataset: string }) {
-  const [dataId, setDataId] = useState('')
+function ForgetForm({
+  dataset,
+  dataId,
+  setDataId,
+  onForgotten,
+}: {
+  dataset: string
+  dataId: string
+  setDataId: (id: string) => void
+  onForgotten: () => void
+}) {
   const [confirming, setConfirming] = useState(false)
   const preview = useAsync(getForgetPreview)
   const forget = useAsync(postForget)
@@ -208,6 +239,7 @@ function ForgetForm({ dataset }: { dataset: string }) {
       const data = await forget.run(dataset, dataId.trim() || undefined)
       setConfirming(false)
       pushToast(`forget completed, ${data.flagged_count} recommendation(s) now flagged suspect`)
+      onForgotten()
     } catch {
       setConfirming(false)
     }
@@ -277,7 +309,16 @@ function ImproveForm({ dataset }: { dataset: string }) {
       </Button>
 
       {improve.state.status === 'error' && <ErrorState message={improve.state.error} />}
-      {result && <CountDelta before={result.counts_before} after={result.counts_after} />}
+      {result && (
+        <>
+          <CountDelta before={result.counts_before} after={result.counts_after} />
+          <p className="mt-1 font-mono text-xs text-ink/50">
+            {result.sessions_bridged.length > 0
+              ? `bridged ${result.sessions_bridged.length} Q&A session(s) into the graph`
+              : 'no logged Q&A sessions to bridge yet — ask a question first, then improve'}
+          </p>
+        </>
+      )}
     </Card>
   )
 }
